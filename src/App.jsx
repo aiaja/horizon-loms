@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { TopNav } from './components/TopNav';
+import { HomeHubPage } from './pages/HomeHubPage';
+import { TabelLearningPage } from './pages/TabelLearningPage';
+import { AtomLabPage } from './pages/AtomLabPage';
+import { CombineChallengePage } from './pages/CombineChallengePage';
+import { AtomBattlePage } from './pages/AtomBattlePage';
+import { ensureBgmStarted, stopBgmLoop } from './utils/sfx';
 
-function App() {
-  const [count, setCount] = useState(0)
+export function App() {
+  const [page, setPage] = useState('home');
+  const [labSeed, setLabSeed] = useState(null);
+
+  //bgm baru jalan pas user klik atau pencet keyboard pertama kali biar ga kena blokir autoplay browser
+  useEffect(() => {
+    const unlock = () => {
+      ensureBgmStarted();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      stopBgmLoop();
+    };
+  }, []);
+
+  const handleOpenElementInLab = (el) => {
+    setLabSeed({
+      key: `${el.z}-${Date.now()}`,
+      protons: el.z,
+      neutrons: el.neutrons,
+      electrons: el.z,
+    });
+    setPage('lab');
+  };
+
+  const handleNavigate = (nextPage) => {
+    if (nextPage !== 'lab') {
+      setLabSeed(null);
+    }
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="ua-app-shell">
+      <div className="ua-container">
+        <TopNav page={page} onNavigate={handleNavigate} />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <main>
+          {page === 'home' && <HomeHubPage onNavigate={handleNavigate} />}
+          {page === 'table' && <TabelLearningPage onOpenInLab={handleOpenElementInLab} />}
+          {page === 'lab' && (
+            <AtomLabPage
+              key={labSeed ? labSeed.key : 'default-lab'}
+              initialAtom={labSeed}
+              onGoChallenge={() => handleNavigate('combine')}
+            />
+          )}
+          {page === 'combine' && (
+            <CombineChallengePage onGoBattle={() => handleNavigate('battle')} />
+          )}
+          {page === 'battle' && (
+            <AtomBattlePage onGoHome={() => handleNavigate('home')} />
+          )}
+        </main>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
